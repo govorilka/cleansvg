@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
-project(ClearSVG)
+
+project(CleanSVG)
 
 option(GLFW_BUILD_DOCS OFF)
 option(GLFW_BUILD_EXAMPLES OFF)
@@ -34,15 +35,16 @@ target_link_libraries(${PROJECT_NAME} glfw
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
-    
-if(WIN32)
+  
+if(MSVC)
    set_target_properties(CleanSVG PROPERTIES LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE")
    set_target_properties(CleanSVG PROPERTIES COMPILE_DEFINITIONS_DEBUG "_CONSOLE")
 
-   set_target_properties(CleanSVG PROPERTIES LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS")
+   set_target_properties(CleanSVG PROPERTIES LINK_FLAGS_RELEASE "/ENTRY:mainCRTStartup /SUBSYSTEM:WINDOWS")
+   set_target_properties(CleanSVG PROPERTIES COMPILE_DEFINITIONS_DEBUG "_WINDOWS")
 
    set_target_properties(CleanSVG PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/SUBSYSTEM:CONSOLE")
    set_target_properties(CleanSVG PROPERTIES COMPILE_DEFINITIONS_RELWITHDEBINFO "_CONSOLE")
 
    set_target_properties(CleanSVG PROPERTIES LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:WINDOWS")
-endif(WIN32)
+endif(MSVC)
