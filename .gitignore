@@ -33,3 +33,9 @@
 
 # VSCode files
 .vsCode
+
+# Temporary project files
+*.user
+
+# Build directory
+build/
