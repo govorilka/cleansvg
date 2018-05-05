@@ -3,3 +3,7 @@
 	path = ext/glfw
 	url = https://github.com/glfw/glfw.git
 	branch = master
+[submodule "ext/glm"]
+	path = ext/glm
+	url = https://github.com/g-truc/glm.git
+	branch = master

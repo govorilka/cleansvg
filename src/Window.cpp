@@ -3,19 +3,23 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "linmath.h"
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <algorithm>
 
 namespace {
 
-static const struct
+const struct
 {
     float x, y;
     float r, g, b;
 } vertices[3] =
 {
-    { -0.6f, -0.4f, 1.f, 0.f, 0.f },
-    {  0.6f, -0.4f, 0.f, 1.f, 0.f },
-    {   0.f,  0.6f, 0.f, 0.f, 1.f }
+    { -1.f, -1.f, 1.f, 0.f, 0.f },
+    {  1.f, -1.f, 0.f, 1.f, 0.f },
+    {   0.f,  1.f, 0.f, 0.f, 1.f }
 };
 
 const char* vertex_shader_text =
@@ -38,11 +42,35 @@ const char* fragment_shader_text =
 "    gl_FragColor = vec4(color, 1.0);\n"
 "}\n";
 
+float global_x = 0;
+float global_y = 0;
+float global_scale = 1.0;
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+    else if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        global_x -= 0.1f;
+    }
+    else if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        global_x += 0.1f;
+    }
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    if (yoffset > 0)
+    {
+       global_scale = std::min(global_scale * 1.1, 10.0);
+    }
+    else if (yoffset < 0)
+    {
+        global_scale = std::max(global_scale / 1.1, 0.1);
     }
 }
 
@@ -53,6 +81,7 @@ CleanSVG::Window::Window(GLFWwindow* window)
     : window_(window)
 {
     glfwSetKeyCallback(window, key_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 }
 
 CleanSVG::Window::~Window()
@@ -99,8 +128,6 @@ int CleanSVG::Window::loop()
 
     while (!glfwWindowShouldClose(window_))
     {
-        mat4x4 m, p, mvp;
-
         int width = 0;
         int height = 0;
         glfwGetFramebufferSize(window_, &width, &height);
@@ -109,13 +136,15 @@ int CleanSVG::Window::loop()
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        mat4x4_identity(m);
-        mat4x4_rotate_Z(m, m, (float) glfwGetTime());
-        mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-        mat4x4_mul(mvp, p, m);
+        glm::mat4 m(1.f);
+        m = glm::translate(m, glm::vec3(global_x, global_y, 1.0));
+        m = glm::scale(m, glm::vec3(global_scale, global_scale, 1.0));
+
+        glm::mat4 p = glm::ortho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
+        glm::mat4 mvp = p * m;
 
         glUseProgram(program);
-        glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*) mvp);
+        glUniformMatrix4fv(mvp_location, 1, GL_FALSE,  glm::value_ptr(mvp));
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glfwSwapBuffers(window_);

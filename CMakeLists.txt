@@ -7,7 +7,10 @@ option(GLFW_BUILD_EXAMPLES OFF)
 option(GLFW_BUILD_TESTS OFF)
 add_subdirectory(ext/glfw)
 
-include_directories(ext/glfw/include/)
+include_directories(
+    ext/glfw/include/
+    ext/glm/
+    )
 include_directories(ext/glfw/deps/)
 
 file(GLOB VENDORS_SOURCES ext/glfw/deps/glad.c)
