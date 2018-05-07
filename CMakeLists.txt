@@ -9,9 +9,11 @@ add_subdirectory(ext/glfw)
 
 include_directories(
     ext/glfw/include/
+    ext/glfw/deps/
     ext/glm/
-    )
-include_directories(ext/glfw/deps/)
+    ext/nanosvg/src/
+    ext/nanosvg/example/ 
+)
 
 file(GLOB VENDORS_SOURCES ext/glfw/deps/glad.c)
 file(GLOB PROJECT_HEADERS src/*.hpp)
@@ -38,7 +40,7 @@ target_link_libraries(${PROJECT_NAME} glfw
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
-  
+
 if(MSVC)
    set_target_properties(CleanSVG PROPERTIES LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE")
    set_target_properties(CleanSVG PROPERTIES COMPILE_DEFINITIONS_DEBUG "_CONSOLE")
