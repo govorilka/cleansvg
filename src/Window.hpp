@@ -29,6 +29,7 @@ private:
     std::unique_ptr<VectorImage> image_;
     bool updateImage_ = true;
     unsigned program_ = -1;
+    unsigned texture_ = 0;
 };
 
 } // CleanSVG

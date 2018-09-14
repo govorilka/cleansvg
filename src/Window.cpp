@@ -179,9 +179,12 @@ void CleanSVG::Window::updateImage()
     int x, y;
     char pixels[16 * 16];
 
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    if (texture_ != 0)
+    {
+        glGenTextures(1, &texture_);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, texture_);
 
     if (image_)
     {
@@ -235,7 +238,7 @@ void CleanSVG::Window::updateImage()
     glUniform1i(texture_location, 0);
 
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D, texture_);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glEnableVertexAttribArray(vpos_location);
