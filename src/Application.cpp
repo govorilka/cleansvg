@@ -31,7 +31,7 @@ std::unique_ptr<CleanSVG::Application> CleanSVG::Application::create()
         return nullptr;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
     return std::make_unique<Application>(PrivateTag());
