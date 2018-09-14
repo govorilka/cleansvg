@@ -3,17 +3,12 @@
 
 int main()
 {
-    auto app = CleanSVG::Application::create();
-    if (!app)
+    if (auto app = CleanSVG::Application::create())
     {
-        return -1;
+        if (auto window = app->createWindow(640, 480, "ClearSVG"))
+        {
+            return window->loop();
+        }
     }
-
-    auto window = app->createWindow(640, 480, "ClearSVG");
-    if (!window)
-    {
-        return -1;
-    }
-
-    return window->loop();
+    return -1;
 }
