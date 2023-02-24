@@ -4,16 +4,18 @@
 
 struct GLFWwindow;
 
-namespace CleanSVG
-{
+namespace CleanSVG {
 
 class VectorImage;
 
 class Window
 {
+    struct PrivateTag{};
 public:
-    Window(GLFWwindow* handle);
+    Window(GLFWwindow* handle, PrivateTag);
     ~Window();
+
+    static std::unique_ptr<Window> create(int w, int h, const std::string& title);
 
     GLFWwindow* handle() const { return handle_; };
 
@@ -32,4 +34,4 @@ private:
     unsigned texture_ = 0;
 };
 
-} // CleanSVG
+} // namespace CleanSVG

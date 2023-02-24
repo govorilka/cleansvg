@@ -15,6 +15,8 @@
 
 #include "linmath.h"
 
+namespace CleanSVG {
+
 namespace {
 
 const struct
@@ -54,7 +56,7 @@ float global_x = 0;
 float global_y = 0;
 float global_scale = 1.0;
 
-CleanSVG::Window* window = nullptr;
+Window* window = nullptr;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -95,35 +97,57 @@ void drop_callback(GLFWwindow* handle, int count, const char** paths)
     }
 }
 
+void error_callback(int error, const char* description)
+{
+    std::cerr << "Error: " << description << std::endl;
+}
+
 } // anonymous namespace
 
-CleanSVG::Window::Window(GLFWwindow* handle)
+Window::Window(GLFWwindow* handle, PrivateTag)
     : handle_(handle)
 {
     window = this;
-
     glfwSetKeyCallback(handle_, key_callback);
     glfwSetScrollCallback(handle_, scroll_callback);
     glfwSetDropCallback(handle_, drop_callback);
 }
 
-CleanSVG::Window::~Window()
+Window::~Window()
 {
     window = nullptr;
     glfwDestroyWindow(handle_);
+    glfwTerminate();
 }
 
- void CleanSVG::Window::load(const char* filename)
- {
+std::unique_ptr<Window> Window::create(int w, int h, const std::string& title)
+{
+    glfwSetErrorCallback(error_callback);
+    if (!glfwInit()) {
+        return nullptr;
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+
+    auto window = glfwCreateWindow(w, h, title.c_str(), NULL, NULL);
+    if (!window) {
+        return nullptr;
+    }
+
+    return std::make_unique<Window>(window, PrivateTag());
+}
+
+void Window::load(const char* filename)
+{
     image_ = VectorImage::load(filename);
-    if (image_)
-    {
+    if (image_) {
         updateImage_ = true;
         image_->savePng("1.png");
     }
- }
+}
 
-int CleanSVG::Window::loop()
+int Window::loop()
 {
     glfwMakeContextCurrent(handle_);
 
@@ -174,7 +198,7 @@ int CleanSVG::Window::loop()
     return 0;
 }
 
-void CleanSVG::Window::updateImage()
+void Window::updateImage()
 {
     if (!updateImage_)
     {
@@ -258,3 +282,5 @@ void CleanSVG::Window::updateImage()
     glVertexAttribPointer(texcoord_location, 2, GL_FLOAT, GL_FALSE,
                           sizeof(vertices[0]), (void*) (sizeof(float) * 2));
 }
+
+} // namespace CleanSVG
