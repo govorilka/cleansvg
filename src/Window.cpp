@@ -1,7 +1,9 @@
 #include "Window.hpp"
 #include "VectorImage.hpp"
 
-#include <glad/glad.h>
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+
 #include <GLFW/glfw3.h>
 
 #include <glm/mat4x4.hpp>
@@ -9,6 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <algorithm>
+#include <iostream>
 
 #include "linmath.h"
 
@@ -123,7 +126,13 @@ CleanSVG::Window::~Window()
 int CleanSVG::Window::loop()
 {
     glfwMakeContextCurrent(handle_);
-    gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
+
+    int version = gladLoadGL(glfwGetProcAddress);
+    if (version == 0) {
+        std::cout << "Failed to initialize OpenGL context" << std::endl;
+        return -1;
+    }
+
     glfwSwapInterval(1);
 
     while (!glfwWindowShouldClose(handle_))
