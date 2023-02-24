@@ -1,5 +1,4 @@
-#include "Window.hpp"
-#include "VectorImage.hpp"
+#include <cstdint>
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
@@ -14,6 +13,9 @@
 #include <iostream>
 
 #include "linmath.h"
+
+#include "Window.hpp"
+#include "VectorImage.hpp"
 
 namespace CleanSVG {
 
@@ -32,7 +34,7 @@ const struct
 };
 
 const char* vertex_shader_text =
-"#version 110\n"
+"#version 410 core\n"
 "uniform mat4 MVP;\n"
 "attribute vec2 vPos;\n"
 "attribute vec2 vPosTex;\n"
@@ -44,7 +46,7 @@ const char* vertex_shader_text =
 "}\n";
 
 const char* fragment_shader_text =
-"#version 110\n"
+"#version 410 core\n"
 "uniform sampler2D texture;\n"
 "varying vec2 texcoord;\n"
 "void main()\n"
@@ -127,8 +129,8 @@ std::unique_ptr<Window> Window::create(int w, int h, const std::string& title)
         return nullptr;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
     auto window = glfwCreateWindow(w, h, title.c_str(), NULL, NULL);
     if (!window) {
@@ -174,9 +176,7 @@ int Window::loop()
         glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
         updateImage();
-
-        if (program_ != -1)
-        {
+        if (program_ != 0) {
             auto mvp_location = glGetUniformLocation(program_, "MVP");
 
             glm::mat4 m(1.f);
@@ -186,11 +186,11 @@ int Window::loop()
             glm::mat4 p = glm::ortho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
             glm::mat4 mvp = p * m;
 
-            glUniformMatrix4fv(mvp_location, 1, GL_FALSE,  glm::value_ptr(mvp));        
+            glUniformMatrix4fv(mvp_location, 1, GL_FALSE,  glm::value_ptr(mvp));
+
+            glUseProgram(program_);  
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);   
         }
-
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
         glfwSwapBuffers(handle_);
         glfwPollEvents();
     }
@@ -207,16 +207,11 @@ void Window::updateImage()
 
     updateImage_ = false;
 
-    // Create the OpenGL objects inside the first context, created above
-    // All objects will be shared with the second context, created below
-    int x, y;
-    char pixels[16 * 16];
-
-    if (texture_ != 0)
-    {
+    if (texture_ == 0) {
         glGenTextures(1, &texture_);
     }
 
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture_);
 
     if (image_)
@@ -224,22 +219,37 @@ void Window::updateImage()
         RasterImage raster = image_->toRaster();
         if (raster.width != 0 && raster.height != 0)
         {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, raster.width, raster.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, raster.data.data());    
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, raster.width, raster.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, raster.data.data());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_GREEN);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_BLUE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ALPHA);    
         }
     }
     else
     {
         srand((unsigned int) glfwGetTimerValue());
 
-        for (y = 0;  y < 16;  y++)
+        std::uint8_t pixels[16 * 16 * 2];
         {
-            for (x = 0;  x < 16;  x++)
-            {
-                pixels[y * 16 + x] = rand() % 256;
+            std::uint8_t* it = pixels;
+            bool toggleRow = false;
+            for (int y = 0;  y < 16;  ++y) {
+                bool toggleColumn = toggleRow;
+                for (int x = 0;  x < 16;  ++x) {
+                    *it++ = toggleColumn ? 128 : 192;
+                    *it++ = 255;
+                    toggleColumn = !toggleColumn;
+                }
+                toggleRow = !toggleRow;
             }
         }
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 16, 16, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, 16, 16, 0, GL_RG, GL_UNSIGNED_BYTE, pixels);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN);
     }
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -258,6 +268,11 @@ void Window::updateImage()
     glAttachShader(program_, fragment_shader);
     glLinkProgram(program_);
 
+    if (vao_ == 0) {
+        glGenVertexArrays(1, &vao_);
+        glBindVertexArray(vao_);
+    }
+
     auto texture_location = glGetUniformLocation(program_, "texture");
     auto vpos_location = glGetAttribLocation(program_, "vPos");
     auto texcoord_location = glGetAttribLocation(program_, "vPosTex");
@@ -267,11 +282,7 @@ void Window::updateImage()
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glUseProgram(program_);
-    glUniform1i(texture_location, 0);
-
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, texture_);
+    glUniform1i(texture_location, GL_TEXTURE0);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glEnableVertexAttribArray(vpos_location);

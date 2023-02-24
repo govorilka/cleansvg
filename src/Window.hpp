@@ -30,8 +30,9 @@ private:
     GLFWwindow* handle_ = nullptr;
     std::unique_ptr<VectorImage> image_;
     bool updateImage_ = true;
-    unsigned program_ = -1;
+    unsigned program_ = 0;
     unsigned texture_ = 0;
+    unsigned vao_ = 0;
 };
 
 } // namespace CleanSVG
