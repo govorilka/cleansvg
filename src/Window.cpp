@@ -53,69 +53,42 @@ const char* fragment_shader_text =
 "    gl_FragColor = texture2D(texture, texcoord);\n"
 "}\n";
 
-float global_x = 0;
-float global_y = 0;
-float global_scale = 1.0;
-
-Window* window = nullptr;
-
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-    } else if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-        global_x -= 0.1f;
-    } else if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-        global_x += 0.1f;
-    } else if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-        global_y += 0.1f;
-    } else if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-        global_y -= 0.1f;
-    }
-}
-
-void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    if (yoffset > 0) {
-       global_scale = std::min(global_scale * 1.1, 10.0);
-    } else if (yoffset < 0) {
-       global_scale = std::max(global_scale / 1.1, 0.1);
-    }
-}
-
-void dropCallback(GLFWwindow* handle, int count, const char** paths)
-{
-    if (window && window->handle() == handle && count > 0) {
-        window->load(paths[0]);
-    }
-}
-
-void error_callback(int error, const char* description)
-{
-    std::cerr << "Error: " << description << std::endl;
-}
-
 } // anonymous namespace
 
 Window::Window(GLFWwindow* handle, PrivateTag)
     : m_handle(handle)
 {
-    window = this;
-    glfwSetKeyCallback(m_handle, keyCallback);
-    glfwSetScrollCallback(m_handle, scrollCallback);
-    glfwSetDropCallback(m_handle, dropCallback);
+    glfwSetWindowUserPointer(m_handle, reinterpret_cast<void *>(this));
+
+    glfwSetKeyCallback(m_handle, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        if (auto* handler = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window))) {
+            handler->onKeyEvent(key, scancode, action, mods);
+        }
+    });
+    glfwSetScrollCallback(m_handle, [](GLFWwindow* window, double xoffset, double yoffset) {
+        if (auto* handler = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window))) {
+            handler->onScrollEvent(xoffset, yoffset);
+        }
+    });
+    glfwSetDropCallback(m_handle, [](GLFWwindow* window, int count, const char** paths) {
+        if (auto* handler = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window))) {
+            handler->onDropEvent(count, paths);
+        }
+    });
 }
 
 Window::~Window()
 {
-    window = nullptr;
     glfwDestroyWindow(m_handle);
     glfwTerminate();
 }
 
 std::unique_ptr<Window> Window::create(int w, int h, const std::string& title)
 {
-    glfwSetErrorCallback(error_callback);
+    glfwSetErrorCallback([](int error, const char* description){
+        std::cerr << "Error: " << description << std::endl;
+    });
+
     if (!glfwInit()) {
         return nullptr;
     }
@@ -135,9 +108,10 @@ void Window::load(const char* filename)
 {
     m_image = VectorImage::load(filename);
     if (m_image) {
-        m_updateImage = true;
         m_image->savePng("1.png");
     }
+    m_updateImage = true;
+    resetCamera();
 }
 
 int Window::loop()
@@ -152,8 +126,7 @@ int Window::loop()
 
     glfwSwapInterval(1);
 
-    while (!glfwWindowShouldClose(m_handle))
-    {
+    while (!glfwWindowShouldClose(m_handle)) {
         int width = 0;
         int height = 0;
         glfwGetFramebufferSize(m_handle, &width, &height);
@@ -171,8 +144,8 @@ int Window::loop()
             auto mvp_location = glGetUniformLocation(m_program, "MVP");
 
             glm::mat4 m(1.f);
-            m = glm::translate(m, glm::vec3(global_x, global_y, 1.0));
-            m = glm::scale(m, glm::vec3(global_scale, global_scale, 1.0));
+            m = glm::translate(m, glm::vec3(m_x, m_y, 1.0));
+            m = glm::scale(m, glm::vec3(m_scale, m_scale, 1.0));
 
             glm::mat4 p = glm::ortho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
             glm::mat4 mvp = p * m;
@@ -191,8 +164,7 @@ int Window::loop()
 
 void Window::updateImage()
 {
-    if (!m_updateImage)
-    {
+    if (!m_updateImage) {
         return;
     }
 
@@ -277,6 +249,44 @@ void Window::updateImage()
     glEnableVertexAttribArray(texcoord_location);
     glVertexAttribPointer(texcoord_location, 2, GL_FLOAT, GL_FALSE,
                           sizeof(vertices[0]), (void*) (sizeof(float) * 2));
+}
+
+void Window::onKeyEvent(int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        glfwSetWindowShouldClose(m_handle, GLFW_TRUE);
+    } else if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+        m_x -= 0.1f;
+    } else if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+        m_x += 0.1f;
+    } else if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+        m_y += 0.1f;
+    } else if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+        m_y -= 0.1f;
+    }
+}
+
+void Window::onScrollEvent(double xoffset, double yoffset)
+{
+    if (yoffset > 0) {
+        m_scale = std::min(m_scale * 1.1, 10.0);
+    } else if (yoffset < 0) {
+        m_scale = std::max(m_scale / 1.1, 0.1);
+    }
+}
+
+void Window::onDropEvent(int count, const char** paths)
+{
+    if (count > 0) {
+        load(paths[0]);
+    }
+}
+
+void Window::resetCamera()
+{
+    m_x = 0.F;
+    m_y = 0.F;
+    m_scale = 1.0F;
 }
 
 } // namespace CleanSVG

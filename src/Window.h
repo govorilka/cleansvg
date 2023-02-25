@@ -7,7 +7,7 @@
 
 namespace CleanSVG {
 
-class Window
+class Window final
 {
     struct PrivateTag{};
 
@@ -17,24 +17,31 @@ public:
 
     static std::unique_ptr<Window> create(int w, int h, const std::string& title);
 
-    GLFWwindow* handle() const { 
-        return m_handle;
-    };
-
     void load(const char* filename);
 
     int loop();
 
+    void resetCamera();
+
 private:
+    void onKeyEvent(int key, int scancode, int action, int mods);
+    void onScrollEvent(double xoffset, double yoffset);
+    void onDropEvent(int count, const char** paths);
+
     void updateImage();
 
 private:
     GLFWwindow* m_handle = nullptr;
+
     std::unique_ptr<VectorImage> m_image;
     bool m_updateImage = true;
     unsigned m_program = 0;
     unsigned m_texture = 0;
     unsigned m_vao = 0;
+
+    float m_x = 0.F;
+    float m_y = 0.F;
+    float m_scale = 1.0F;
 };
 
 } // namespace CleanSVG
