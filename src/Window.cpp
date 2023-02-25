@@ -14,8 +14,7 @@
 
 #include "linmath.h"
 
-#include "Window.hpp"
-#include "VectorImage.hpp"
+#include "Window.h"
 
 namespace CleanSVG {
 
@@ -60,7 +59,7 @@ float global_scale = 1.0;
 
 Window* window = nullptr;
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -75,7 +74,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     if (yoffset > 0) {
        global_scale = std::min(global_scale * 1.1, 10.0);
@@ -84,7 +83,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     }
 }
 
-void drop_callback(GLFWwindow* handle, int count, const char** paths)
+void dropCallback(GLFWwindow* handle, int count, const char** paths)
 {
     if (window && window->handle() == handle && count > 0) {
         window->load(paths[0]);
@@ -99,18 +98,18 @@ void error_callback(int error, const char* description)
 } // anonymous namespace
 
 Window::Window(GLFWwindow* handle, PrivateTag)
-    : handle_(handle)
+    : m_handle(handle)
 {
     window = this;
-    glfwSetKeyCallback(handle_, key_callback);
-    glfwSetScrollCallback(handle_, scroll_callback);
-    glfwSetDropCallback(handle_, drop_callback);
+    glfwSetKeyCallback(m_handle, keyCallback);
+    glfwSetScrollCallback(m_handle, scrollCallback);
+    glfwSetDropCallback(m_handle, dropCallback);
 }
 
 Window::~Window()
 {
     window = nullptr;
-    glfwDestroyWindow(handle_);
+    glfwDestroyWindow(m_handle);
     glfwTerminate();
 }
 
@@ -124,7 +123,7 @@ std::unique_ptr<Window> Window::create(int w, int h, const std::string& title)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
-    auto window = glfwCreateWindow(w, h, title.c_str(), NULL, NULL);
+    auto window = glfwCreateWindow(w, h, title.c_str(), nullptr, nullptr);
     if (!window) {
         return nullptr;
     }
@@ -134,16 +133,16 @@ std::unique_ptr<Window> Window::create(int w, int h, const std::string& title)
 
 void Window::load(const char* filename)
 {
-    image_ = VectorImage::load(filename);
-    if (image_) {
-        updateImage_ = true;
-        image_->savePng("1.png");
+    m_image = VectorImage::load(filename);
+    if (m_image) {
+        m_updateImage = true;
+        m_image->savePng("1.png");
     }
 }
 
 int Window::loop()
 {
-    glfwMakeContextCurrent(handle_);
+    glfwMakeContextCurrent(m_handle);
 
     int version = gladLoadGL(glfwGetProcAddress);
     if (version == 0) {
@@ -153,11 +152,11 @@ int Window::loop()
 
     glfwSwapInterval(1);
 
-    while (!glfwWindowShouldClose(handle_))
+    while (!glfwWindowShouldClose(m_handle))
     {
         int width = 0;
         int height = 0;
-        glfwGetFramebufferSize(handle_, &width, &height);
+        glfwGetFramebufferSize(m_handle, &width, &height);
         float ratio = width / float(height);
 
         glViewport(0, 0, width, height);
@@ -168,8 +167,8 @@ int Window::loop()
         glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
         updateImage();
-        if (program_ != 0) {
-            auto mvp_location = glGetUniformLocation(program_, "MVP");
+        if (m_program != 0) {
+            auto mvp_location = glGetUniformLocation(m_program, "MVP");
 
             glm::mat4 m(1.f);
             m = glm::translate(m, glm::vec3(global_x, global_y, 1.0));
@@ -180,10 +179,10 @@ int Window::loop()
 
             glUniformMatrix4fv(mvp_location, 1, GL_FALSE,  glm::value_ptr(mvp));
 
-            glUseProgram(program_);  
+            glUseProgram(m_program);  
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);   
         }
-        glfwSwapBuffers(handle_);
+        glfwSwapBuffers(m_handle);
         glfwPollEvents();
     }
 
@@ -192,36 +191,30 @@ int Window::loop()
 
 void Window::updateImage()
 {
-    if (!updateImage_)
+    if (!m_updateImage)
     {
         return;
     }
 
-    updateImage_ = false;
+    m_updateImage = false;
 
-    if (texture_ == 0) {
-        glGenTextures(1, &texture_);
+    if (m_texture == 0) {
+        glGenTextures(1, &m_texture);
     }
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture_);
+    glBindTexture(GL_TEXTURE_2D, m_texture);
 
-    if (image_)
-    {
-        RasterImage raster = image_->toRaster();
-        if (raster.width != 0 && raster.height != 0)
-        {
+    if (m_image) {
+        RasterImage raster = m_image->toRaster();
+        if (raster.width != 0 && raster.height != 0) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, raster.width, raster.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, raster.data.data());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_GREEN);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_BLUE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ALPHA);    
         }
-    }
-    else
-    {
-        srand((unsigned int) glfwGetTimerValue());
-
+    } else {
         std::uint8_t pixels[16 * 16 * 2];
         {
             std::uint8_t* it = pixels;
@@ -255,19 +248,19 @@ void Window::updateImage()
     glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
     glCompileShader(fragment_shader);
 
-    program_ = glCreateProgram();
-    glAttachShader(program_, vertex_shader);
-    glAttachShader(program_, fragment_shader);
-    glLinkProgram(program_);
+    m_program = glCreateProgram();
+    glAttachShader(m_program, vertex_shader);
+    glAttachShader(m_program, fragment_shader);
+    glLinkProgram(m_program);
 
-    if (vao_ == 0) {
-        glGenVertexArrays(1, &vao_);
-        glBindVertexArray(vao_);
+    if (m_vao == 0) {
+        glGenVertexArrays(1, &m_vao);
+        glBindVertexArray(m_vao);
     }
 
-    auto texture_location = glGetUniformLocation(program_, "texture");
-    auto vpos_location = glGetAttribLocation(program_, "vPos");
-    auto texcoord_location = glGetAttribLocation(program_, "vPosTex");
+    auto texture_location = glGetUniformLocation(m_program, "texture");
+    auto vpos_location = glGetAttribLocation(m_program, "vPos");
+    auto texcoord_location = glGetAttribLocation(m_program, "vPosTex");
 
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);

@@ -1,6 +1,6 @@
 #include <string>
 
-#include "Window.hpp"
+#include "Window.h"
 
 int main()
 {

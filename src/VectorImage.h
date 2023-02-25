@@ -28,7 +28,7 @@ public:
     RasterImage toRaster() const;
 
 private:
-    NSVGimage* handle_ = nullptr;
+    NSVGimage* m_handle = nullptr;
 };
 
 } // namespace CleanSVG
