@@ -1,18 +1,11 @@
 #include <cstdint>
+#include <algorithm>
+#include <iostream>
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
 
 #include <GLFW/glfw3.h>
-
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include <algorithm>
-#include <iostream>
-
-#include "linmath.h"
 
 #include "Window.h"
 
@@ -111,7 +104,7 @@ void Window::load(const char* filename)
         m_image->savePng("1.png");
     }
     m_updateImage = true;
-    resetCamera();
+    m_camera.reset();
 }
 
 int Window::loop()
@@ -130,7 +123,7 @@ int Window::loop()
         int width = 0;
         int height = 0;
         glfwGetFramebufferSize(m_handle, &width, &height);
-        float ratio = width / float(height);
+        m_camera.setRatio(width / float(height));
 
         glViewport(0, 0, width, height);
         glClearColor(1.0, 1.0, 1.0, 1.0);
@@ -143,14 +136,7 @@ int Window::loop()
         if (m_program != 0) {
             auto mvp_location = glGetUniformLocation(m_program, "MVP");
 
-            glm::mat4 m(1.f);
-            m = glm::translate(m, glm::vec3(m_x, m_y, 1.0));
-            m = glm::scale(m, glm::vec3(m_scale, m_scale, 1.0));
-
-            glm::mat4 p = glm::ortho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-            glm::mat4 mvp = p * m;
-
-            glUniformMatrix4fv(mvp_location, 1, GL_FALSE,  glm::value_ptr(mvp));
+            glUniformMatrix4fv(mvp_location, 1, GL_FALSE,  m_camera.getData());
 
             glUseProgram(m_program);  
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);   
@@ -256,23 +242,19 @@ void Window::onKeyEvent(int key, int scancode, int action, int mods)
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(m_handle, GLFW_TRUE);
     } else if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-        m_x -= 0.1f;
+        m_camera.left();
     } else if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-        m_x += 0.1f;
+        m_camera.right();
     } else if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-        m_y += 0.1f;
+       m_camera.up();
     } else if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
-        m_y -= 0.1f;
+       m_camera.down();
     }
 }
 
 void Window::onScrollEvent(double xoffset, double yoffset)
 {
-    if (yoffset > 0) {
-        m_scale = std::min(m_scale * 1.1, 10.0);
-    } else if (yoffset < 0) {
-        m_scale = std::max(m_scale / 1.1, 0.1);
-    }
+    m_camera.scroll(xoffset, yoffset);
 }
 
 void Window::onDropEvent(int count, const char** paths)
@@ -280,13 +262,6 @@ void Window::onDropEvent(int count, const char** paths)
     if (count > 0) {
         load(paths[0]);
     }
-}
-
-void Window::resetCamera()
-{
-    m_x = 0.F;
-    m_y = 0.F;
-    m_scale = 1.0F;
 }
 
 } // namespace CleanSVG

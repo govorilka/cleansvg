@@ -4,6 +4,7 @@
 
 #include "Fwd.h"
 #include "VectorImage.h"
+#include "Camera.h"
 
 namespace CleanSVG {
 
@@ -21,8 +22,6 @@ public:
 
     int loop();
 
-    void resetCamera();
-
 private:
     void onKeyEvent(int key, int scancode, int action, int mods);
     void onScrollEvent(double xoffset, double yoffset);
@@ -39,9 +38,7 @@ private:
     unsigned m_texture = 0;
     unsigned m_vao = 0;
 
-    float m_x = 0.F;
-    float m_y = 0.F;
-    float m_scale = 1.0F;
+    Camera m_camera;
 };
 
 } // namespace CleanSVG
