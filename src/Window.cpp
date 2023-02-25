@@ -62,40 +62,32 @@ Window* window = nullptr;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-    {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
-    }
-    else if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    {
+    } else if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         global_x -= 0.1f;
-    }
-    else if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    {
+    } else if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         global_x += 0.1f;
+    } else if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+        global_y += 0.1f;
+    } else if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+        global_y -= 0.1f;
     }
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    if (yoffset > 0)
-    {
+    if (yoffset > 0) {
        global_scale = std::min(global_scale * 1.1, 10.0);
-    }
-    else if (yoffset < 0)
-    {
-        global_scale = std::max(global_scale / 1.1, 0.1);
+    } else if (yoffset < 0) {
+       global_scale = std::max(global_scale / 1.1, 0.1);
     }
 }
 
 void drop_callback(GLFWwindow* handle, int count, const char** paths)
 {
-    if (window && window->handle() == handle)
-    {
-        if (count > 0)
-        {
-            window->load(paths[0]);
-        }
+    if (window && window->handle() == handle && count > 0) {
+        window->load(paths[0]);
     }
 }
 
