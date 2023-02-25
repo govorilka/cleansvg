@@ -36,6 +36,7 @@ private:
     bool m_updateImage = true;
     unsigned m_program = 0;
     unsigned m_texture = 0;
+    unsigned m_vbo = 0;
     unsigned m_vao = 0;
 
     Camera m_camera;

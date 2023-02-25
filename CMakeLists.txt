@@ -56,3 +56,14 @@ if(MSVC)
 
    set_target_properties(CleanSVG PROPERTIES LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:WINDOWS")
 endif(MSVC)
+
+if (APPLE)
+    find_package(OpenGL REQUIRED)
+
+    target_include_directories(CleanSVG PUBLIC ${OPENGL_INCLUDE_DIR})
+
+    target_link_libraries(CleanSVG "-framework Cocoa")
+    target_link_libraries(CleanSVG "-framework OpenGL")
+    target_link_libraries(CleanSVG "-framework IOKit")
+    target_link_libraries(CleanSVG ${OPENGL_gl_LIBRARY})
+endif (APPLE)
