@@ -1,19 +1,9 @@
-#include "Application.hpp"
-#include "Window.hpp"
+#include <string>
+
+#include "Window.h"
 
 int main()
 {
-    auto app = CleanSVG::Application::create();
-    if (!app)
-    {
-        return -1;
-    }
-
-    auto window = app->createWindow(640, 480, "ClearSVG");
-    if (!window)
-    {
-        return -1;
-    }
-
-    return window->loop();
+    auto window = CleanSVG::Window::create(640, 480, "ClearSVG");
+    return window ? window->loop() : -1;
 }

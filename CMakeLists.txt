@@ -2,13 +2,21 @@ cmake_minimum_required(VERSION 3.10)
 
 project(CleanSVG)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 option(GLFW_BUILD_DOCS OFF)
 option(GLFW_BUILD_EXAMPLES OFF)
 option(GLFW_BUILD_TESTS OFF)
 add_subdirectory(ext/glfw)
 
-include_directories(ext/glfw/include/)
-include_directories(ext/glfw/deps/)
+include_directories(
+    ext/glfw/include/
+    ext/glfw/deps/
+    ext/glm/
+    ext/nanosvg/src/
+    ext/nanosvg/example/ 
+)
 
 file(GLOB VENDORS_SOURCES ext/glfw/deps/glad.c)
 file(GLOB PROJECT_HEADERS src/*.hpp)
@@ -35,7 +43,7 @@ target_link_libraries(${PROJECT_NAME} glfw
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
-  
+
 if(MSVC)
    set_target_properties(CleanSVG PROPERTIES LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE")
    set_target_properties(CleanSVG PROPERTIES COMPILE_DEFINITIONS_DEBUG "_CONSOLE")
@@ -48,3 +56,14 @@ if(MSVC)
 
    set_target_properties(CleanSVG PROPERTIES LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:WINDOWS")
 endif(MSVC)
+
+if (APPLE)
+    find_package(OpenGL REQUIRED)
+
+    target_include_directories(CleanSVG PUBLIC ${OPENGL_INCLUDE_DIR})
+
+    target_link_libraries(CleanSVG "-framework Cocoa")
+    target_link_libraries(CleanSVG "-framework OpenGL")
+    target_link_libraries(CleanSVG "-framework IOKit")
+    target_link_libraries(CleanSVG ${OPENGL_gl_LIBRARY})
+endif (APPLE)
